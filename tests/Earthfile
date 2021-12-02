@@ -906,13 +906,13 @@ help:
 ls:
     COPY ls.earth Earthfile
     RUN earthly ls 2>/dev/null | tee actual
-    RUN echo -e "alpha\nbase\nbravo\ncharlie" > expected
+    RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
     RUN diff expected actual
 
 ls-subdir:
     COPY ls.earth subdir/Earthfile
     RUN earthly ls ./subdir 2>/dev/null | tee actual
-    RUN echo -e "alpha\nbase\nbravo\ncharlie" > expected
+    RUN echo -e "+alpha\n+base\n+bravo\n+charlie" > expected
     RUN diff expected actual
 
 

@@ -185,7 +185,7 @@ func GetTargetArgs(ctx context.Context, resolver *buildcontext.Resolver, gwClien
 	}
 	var args []string
 	for _, stmt := range t.Recipe {
-		if stmt.Command.Name == "ARG" {
+		if stmt.Command != nil && stmt.Command.Name == "ARG" { // TODO this skips ARGs that are under IF statements (which are under stmt.Body[])
 			args = append(args, stmt.Command.Args[0])
 		}
 	}

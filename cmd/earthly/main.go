@@ -159,6 +159,8 @@ type cliFlags struct {
 	disableAnalytics          bool
 	featureFlagOverrides      string
 	localRegistryHost         string
+	lsShowLong                bool
+	lsShowArgs                bool
 	containerFrontend         containerutil.ContainerFrontend
 }
 
@@ -710,6 +712,20 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 			Usage:     "List targets from an Earthfile *experimental*",
 			UsageText: "earthly [options] ls [<project-ref>]",
 			Action:    app.actionListTargets,
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:        "args",
+					Aliases:     []string{"a"},
+					Usage:       "Show Arguments",
+					Destination: &app.lsShowArgs,
+				},
+				&cli.BoolFlag{
+					Name:        "long",
+					Aliases:     []string{"l"},
+					Usage:       "Show full target-ref",
+					Destination: &app.lsShowLong,
+				},
+			},
 		},
 		{
 			Name:        "secrets",
@@ -3013,7 +3029,26 @@ func (app *earthlyApp) actionListTargets(c *cli.Context) error {
 	targets = append(targets, "base")
 	sort.Strings(targets)
 	for _, t := range targets {
-		fmt.Println(t)
+		var args []string
+		if t != "base" {
+			target.Target = t
+			args, err = earthfile2llb.GetTargetArgs(c.Context, resolver, gwClient, target)
+			if err != nil {
+				return err
+			}
+		}
+		if app.lsShowLong {
+			fmt.Printf("%s+%s\n", targetToParse, t)
+		} else {
+			fmt.Printf("+%s\n", t)
+		}
+		if app.lsShowArgs {
+			if args != nil {
+				for _, arg := range args {
+					fmt.Printf("  --%s\n", arg)
+				}
+			}
+		}
 	}
 	return nil
 }

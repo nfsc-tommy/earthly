@@ -21,6 +21,7 @@ import (
 	"regexp"
 	"runtime"
 	"runtime/debug"
+	"sort"
 	"strconv"
 	"strings"
 	"syscall"
@@ -650,7 +651,7 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 				},
 				&cli.StringFlag{
 					Name:        "earthfile",
-					Usage:       "Path to earthfile output, or - for stdout",
+					Usage:       "Path to Earthfile output, or - for stdout",
 					Value:       "Earthfile",
 					Destination: &app.earthfilePath,
 				},
@@ -703,6 +704,12 @@ func newEarthlyApp(ctx context.Context, console conslogging.ConsoleLogger) *eart
 					Action:    app.actionOrgRevoke,
 				},
 			},
+		},
+		{
+			Name:      "ls",
+			Usage:     "List targets from an Earthfile *experimental*",
+			UsageText: "earthly [options] ls [<project-ref>]",
+			Action:    app.actionListTargets,
 		},
 		{
 			Name:        "secrets",
@@ -2964,6 +2971,49 @@ func (app *earthlyApp) updateGitLookupConfig(gitLookup *buildcontext.GitLookup) 
 		if err != nil {
 			return errors.Wrap(err, "gitlookup")
 		}
+	}
+	return nil
+}
+
+func (app *earthlyApp) actionListTargets(c *cli.Context) error {
+	if c.NArg() > 1 {
+		return errors.New("invalid number of arguments provided")
+	}
+	var targetToParse string
+	if c.NArg() > 0 {
+		targetToParse = c.Args().Get(0)
+		if !(strings.HasPrefix(targetToParse, "/") || strings.HasPrefix(targetToParse, ".")) {
+			return errors.New("remote-paths are not currently supported; local paths must start with \"/\" or \".\"")
+		}
+		if strings.Contains(targetToParse, "+") {
+			return errors.New("path can not contain a +")
+		}
+		targetToParse = strings.TrimSuffix(targetToParse, "/Earthfile")
+	}
+
+	targetToDisplay := targetToParse
+	if targetToParse == "" {
+		targetToDisplay = "current directory"
+	}
+
+	gitLookup := buildcontext.NewGitLookup(app.console, app.sshAuthSock)
+	resolver := buildcontext.NewResolver("", nil, gitLookup, app.console, "")
+	var gwClient gwclient.Client // TODO this is a nil pointer which causes a panic if we try to expand a remotely referenced earthfile
+	// it's expensive to create this gwclient, so we need to implement a lazy eval which returns it when required.
+
+	target, err := domain.ParseTarget(fmt.Sprintf("%s+base", targetToParse)) //the +base is required to make ParseTarget work; however is ignored by GetTargets
+	if err != nil {
+		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+	}
+
+	targets, err := earthfile2llb.GetTargets(c.Context, resolver, gwClient, target)
+	if err != nil {
+		return errors.Errorf("unable to locate Earthfile under %s", targetToDisplay)
+	}
+	targets = append(targets, "base")
+	sort.Strings(targets)
+	for _, t := range targets {
+		fmt.Println(t)
 	}
 	return nil
 }

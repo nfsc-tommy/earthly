@@ -1,3 +1,4 @@
+VERSION 0.6
 hello:
     FROM alpine:3.13
     ARG PRIVILEGED=false

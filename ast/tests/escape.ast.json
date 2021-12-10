@@ -36,6 +36,8 @@
               "FILE=\"file-with-\\+.txt\"",
               "--build-arg",
               "FILE_IN_RUN=\"file-with-+.txt\"",
+              "--build-arg",
+              "EXPECTED_CONTENT=\"plus-content\"",
               "+test-copy-build-arg"
             ],
             "name": "BUILD"
@@ -44,9 +46,9 @@
         {
           "command": {
             "args": [
-              "--build-arg",
-              "FILE=\"regular-file.txt\"",
-              "+test-copy-build-arg"
+              "+test-copy-build-arg",
+              "--FILE=\"regular-file.txt\"",
+              "--EXPECTED_CONTENT=\"regular-content\""
             ],
             "name": "BUILD"
           }
@@ -115,7 +117,7 @@
           "command": {
             "args": [
               "test",
-              "\"content\"",
+              "\"plus-content\"",
               "==",
               "\"$(cat file-with-+.txt)\""
             ],
@@ -148,6 +150,15 @@
         {
           "command": {
             "args": [
+              "--required",
+              "EXPECTED_CONTENT"
+            ],
+            "name": "ARG"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "${FILE}",
               "./"
             ],
@@ -157,8 +168,17 @@
         {
           "command": {
             "args": [
+              "cat",
+              "$FILE_IN_RUN"
+            ],
+            "name": "RUN"
+          }
+        },
+        {
+          "command": {
+            "args": [
               "test",
-              "\"content\"",
+              "\"$EXPECTED_CONTENT\"",
               "==",
               "\"$(cat $FILE_IN_RUN)\""
             ],
@@ -402,5 +422,10 @@
         }
       ]
     }
-  ]
+  ],
+  "version": {
+    "args": [
+      "0.6"
+    ]
+  }
 }

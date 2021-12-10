@@ -4,6 +4,7 @@ import (
 	"crypto/sha1"
 	"encoding/binary"
 	"encoding/hex"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -68,11 +69,15 @@ func getSharedKeyHintFromInclude(name string, incl []string) string {
 func createIncludePatterns(incl []string) []string {
 	incl2 := []string{}
 	for _, inc := range incl {
+		fmt.Printf("ACB inc %s\n", inc)
 		if inc == "." {
 			inc = "./*"
 		} else if strings.HasSuffix(inc, "/.") {
 			inc = inc[:len(inc)-1] + "*"
+		} else {
 		}
+		inc = quoteMeta(inc) // TODO needs to work for https://pkg.go.dev/path/filepath#Match
+		fmt.Printf("ACB encoded inc %s\n", inc)
 		incl2 = append(incl2, inc)
 	}
 	return incl2

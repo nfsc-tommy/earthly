@@ -1,15 +1,17 @@
-VERSION 0.5 # TODO these tests are failing in VERSION 0.6
+VERSION 0.6
+
 FROM alpine:3.13
 WORKDIR /test
 
 all:
     BUILD +test-copy-build-context
     # TODO: FILE_IN_RUN shouldn't need to be different. This is a bug.
-    BUILD \
+    BUILD \ #intentionally leaving --build-arg to ensure the old format works too
         --build-arg FILE="file-with-\+.txt" \
         --build-arg FILE_IN_RUN="file-with-+.txt" \
+        --build-arg EXPECTED_CONTENT="plus-content" \
         +test-copy-build-arg
-    BUILD --build-arg FILE="regular-file.txt" +test-copy-build-arg
+    BUILD +test-copy-build-arg --FILE="regular-file.txt" --EXPECTED_CONTENT="regular-content"
     BUILD +test-copy-artifact1
     BUILD +test-copy-artifact2
     BUILD +test-copy-artifact3
@@ -22,13 +24,15 @@ all:
 
 test-copy-build-context:
     COPY file-with-\+.txt ./
-    RUN test "content" == "$(cat file-with-+.txt)"
+    RUN test "plus-content" == "$(cat file-with-+.txt)"
 
 test-copy-build-arg:
     ARG FILE
     ARG FILE_IN_RUN=$FILE
+    ARG --required EXPECTED_CONTENT
     COPY ${FILE} ./
-    RUN test "content" == "$(cat $FILE_IN_RUN)"
+    RUN cat $FILE_IN_RUN
+    RUN test "$EXPECTED_CONTENT" == "$(cat $FILE_IN_RUN)"
 
 test-copy-artifact1:
     COPY +artifact-with-plus1/another-file-with-\+.txt ./
